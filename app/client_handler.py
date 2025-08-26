@@ -2,7 +2,7 @@ import asyncio
 from app.config import settings
 from app.utils.logger import get_logger
 from app.utils.rate_limiter import SlidingWindowLimiter
-from app.router import route_message
+from app.services.llm_client import llm_generate
 
 log = get_logger("client")
 SEM_GLOBAL = asyncio.Semaphore(settings.MAX_IN_FLIGHT)
@@ -37,8 +37,9 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 continue
 
             async with SEM_GLOBAL:
-                reply = await route_message(msg)
-                writer.write((reply + "\n").encode("utf-8"))
+                # Directly call the LLM with a default state (no router logic)
+                llm_reply = await llm_generate(msg, "moderada")
+                writer.write((llm_reply + "\n").encode("utf-8"))
                 await writer.drain()
 
     except Exception as e:
