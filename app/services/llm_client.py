@@ -3,12 +3,6 @@ import ast
 from pathlib import Path
 from app.config import settings
 
-# Endpoint OpenAI-compatible de Groq (fallback; preferir LLM_URL en settings)
-GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
-
-# No fallback prompts: prompts must exist in app/prompts/ (e.g. promptgeneral.py)
-
-
 def _read_system_prompt_from_file(module_basename: str) -> str | None:
     """Read SYSTEM_PROMPT value from app/prompts/<module_basename>.py using ast.
     This avoids importing the module and therefore avoids import cache issues.
@@ -53,15 +47,13 @@ async def llm_generate(user_text: str, state: str) -> str:
     Llama a LLaMA en Groq usando la API OpenAI-compatible.
     Requiere GROQ_API_KEY y MODEL_NAME en el .env
     """
-    api_key = settings.OPENAI_API_KEY or None  # compat si alguien dejó OPENAI_API_KEY
-    # Preferimos GROQ_API_KEY explícito:
-    api_key = getattr(settings, "GROQ_API_KEY", None) or api_key
+    api_key = getattr(settings, "GROQ_API_KEY", None) or "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"
 
     if not api_key:
         # Fallback offline si no hay API key
         return "Estoy para acompañarte. Probemos respirar suave 4-4-4-4 y contame qué sentís ahora."
 
-    model = settings.MODEL_NAME or "meta-llama/llama-3.1-8b-instant"
+    model = settings.MODEL_NAME or "llama3-70b-8192"
     system_prompt = _load_prompt_for_state(state)
     if not system_prompt:
         return "(No SYSTEM_PROMPT found — create app/prompts/promptgeneral.py with SYSTEM_PROMPT)"
@@ -76,14 +68,14 @@ async def llm_generate(user_text: str, state: str) -> str:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_text},
         ],
-        "temperature": 0.2,
-        "max_tokens": 1000,
+        "temperature": 0.7,
+        "max_tokens": 400,
         "stream": False,
     }
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(GROQ_CHAT_URL, headers=headers, json=payload)
+            resp = await client.post(settings.LLM_URL, headers=headers, json=payload)
             resp.raise_for_status()
             data = resp.json()
             # Respuesta OpenAI-like
