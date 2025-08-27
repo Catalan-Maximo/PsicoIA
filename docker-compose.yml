@@ -6,9 +6,7 @@ services:
     command: ["python", "-m", "app.server"]
     ports:
       - "${APP_PORT:-5001}:5001"
-    depends_on:
-      mysql:
-        condition: service_healthy
+  # no DB dependency
 
   gateway:
     build: .
@@ -20,27 +18,4 @@ services:
     depends_on:
       app:
         condition: service_started
-
-  mysql:
-    image: mysql:8.0
-    container_name: psicoia_mysql
-    environment:
-      MYSQL_DATABASE: ${MYSQL_DB:-psicoia}
-      MYSQL_USER: ${MYSQL_USER:-psicoia}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-psicoia}
-      MYSQL_ROOT_PASSWORD: root
-    ports:
-      - "3310:3306"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-ppsicoia"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-
-  adminer:
-    image: adminer:latest
-    container_name: psicoia_adminer
-    ports:
-      - "3311:8080"
-    depends_on:
-      - mysql
+  # DB services removed per project decision

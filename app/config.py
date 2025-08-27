@@ -8,12 +8,6 @@ class Settings(BaseSettings):
     RATE_WINDOW_SECONDS: int = 10
     RATE_MAX_MESSAGES: int = 6
 
-    MYSQL_HOST: str = "localhost"
-    MYSQL_PORT: int = 3306
-    MYSQL_USER: str = "root"
-    MYSQL_PASSWORD: str = ""
-    MYSQL_DB: str = "psicoia"
-
     OPENAI_API_KEY: str | None = None
     GROQ_API_KEY: str | None = None
     MODEL_NAME: str | None = None
