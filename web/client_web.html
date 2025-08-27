@@ -1,24 +1,655 @@
 <!doctype html>
-<html>
-  <head><meta charset="utf-8"><title>PsicoIA Web</title></head>
-  <body>
-    <h1>PsicoIA WebSocket</h1>
-    <div>
-      <input id="msg" placeholder="Escribí acá..." />
-      <button onclick="send()">Enviar</button>
-    </div>
-    <pre id="log" style="white-space: pre-wrap;"></pre>
-    <script>
-      const log = (t) => document.getElementById('log').textContent += t + "\n";
-      const ws = new WebSocket("ws://localhost:8765");
-      ws.onopen = () => log("WS conectado.");
-      ws.onmessage = (e) => log(e.data);
-      ws.onclose = () => log("WS cerrado.");
-      function send(){
-        const v = document.getElementById('msg').value;
-        ws.send(v);
-        document.getElementById('msg').value = "";
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PsicoIA Web</title>
+  <style>
+    :root{
+      /* Paleta más cálida y tranquilizante */
+      --bg1:#f0f4f8;
+      --bg2:#ffffff;
+      --ink:#2d3748;
+      --muted:#718096;
+      --accent:#4299e1;     /* azul sereno */
+      --accent-2:#63b3ed;   /* azul suave */
+      --accent-3:#90cdf4;   /* azul muy suave */
+      --ring:rgba(45,55,72,.06);
+      --card:#ffffff;
+      --chip:#edf2f7;
+      --chip-hover:#e2e8f0;
+      --success:#48bb78;
+      --warm:#fed7aa;
+      --warm-2:#fef3e2;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    
+    /* Animación de respiración para elementos calmantes */
+    @keyframes breathe {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50% { transform: scale(1.05); opacity: 1; }
+    }
+    
+    /* Ondas suaves de fondo */
+    @keyframes waves {
+      0%, 100% { transform: translateX(0) translateY(0); }
+      33% { transform: translateX(30px) translateY(-10px); }
+      66% { transform: translateX(-20px) translateY(10px); }
+    }
+    
+    /* Partículas flotantes */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(180deg); }
+    }
+    
+    /* Pulse suave */
+    @keyframes softPulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(66,153,225,.2); }
+      50% { box-shadow: 0 0 40px rgba(66,153,225,.4); }
+    }
+
+    body{
+      margin:0;
+      font-family: Inter, "Segoe UI", Roboto, system-ui, -apple-system, Arial, sans-serif;
+      color:var(--ink);
+      background: var(--bg1);
+      overflow: hidden;
+      position: relative;
+    }
+    
+    /* Partículas flotantes de fondo */
+    body::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 25% 25%, rgba(66,153,225,.05) 2px, transparent 2px),
+        radial-gradient(circle at 75% 75%, rgba(72,187,120,.05) 2px, transparent 2px);
+      background-size: 100px 100px, 150px 150px;
+      animation: float 20s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    /* Ondas suaves en el fondo */
+    body::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: 
+        radial-gradient(ellipse at center, transparent 40%, rgba(66,153,225,.03) 70%, transparent 100%);
+      animation: waves 25s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Página en pantalla completa */
+    .page{
+      height:100vh;
+      display:flex;
+      flex-direction:column;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header mejorado */
+    .header{
+      height:70px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-bottom:1px solid var(--ring);
+      background: linear-gradient(135deg, rgba(255,255,255,.9) 0%, rgba(237,242,247,.9) 100%);
+      backdrop-filter: blur(10px);
+      position: relative;
+    }
+    
+    .header::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-3), transparent);
+      animation: softPulse 4s ease-in-out infinite;
+    }
+    
+    .container{ 
+      width: min(1200px, 96%); 
+      margin: 0 auto; 
+      display:flex; 
+      align-items:center; 
+      justify-content:space-between; 
+    }
+    
+    .brand{ 
+      font-weight:800; 
+      letter-spacing:.2px; 
+      font-size:20px; 
+      position: relative;
+    }
+    
+    .brand b{
+      background: linear-gradient(135deg, var(--accent), var(--accent-2), var(--success));
+      -webkit-background-clip:text; 
+      background-clip:text; 
+      color:transparent;
+      animation: breathe 6s ease-in-out infinite;
+    }
+    
+    .statusHead{ 
+      display:flex; 
+      align-items:center; 
+      gap:12px; 
+      color:var(--muted); 
+      font-size:14px;
+      font-weight: 500;
+    }
+    
+    .dot{ 
+      width:12px; 
+      height:12px; 
+      border-radius:999px; 
+      background:#ef4444; 
+      box-shadow:0 0 0 3px rgba(239,68,68,.15);
+      animation: breathe 3s ease-in-out infinite;
+    }
+    .dot.ok{ 
+      background:var(--success); 
+      box-shadow:0 0 0 3px rgba(72,187,120,.2);
+    }
+    .dot.warn{ 
+      background:#eab308; 
+      box-shadow:0 0 0 3px rgba(234,179,8,.15);
+    }
+
+    /* Main mejorado */
+    .main{
+      flex:1;
+      display:flex;
+      align-items:stretch;
+      justify-content:center;
+      padding: 20px 0;
+      min-height: 0;
+    }
+
+    /* Shell con efectos visuales tranquilizantes */
+    .shell{
+      width: min(1100px, 96%);
+      height: 100%;
+      background: rgba(255,255,255,.95);
+      border:1px solid var(--ring);
+      border-radius:20px;
+      box-shadow: 
+        0 20px 60px rgba(2,6,23,.08),
+        0 8px 25px rgba(66,153,225,.1),
+        inset 0 1px 0 rgba(255,255,255,.8);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+      backdrop-filter: blur(10px);
+      position: relative;
+    }
+    
+    /* Borde suave que respira */
+    .shell::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 20px;
+      padding: 2px;
+      background: linear-gradient(135deg, var(--accent-3), transparent, var(--warm));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: exclude;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      opacity: 0.6;
+      animation: breathe 8s ease-in-out infinite;
+    }
+
+    /* Área de chat mejorada */
+    .chat{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      background: linear-gradient(180deg, #fafbfc 0%, #f8fafc 100%);
+      min-height: 0;
+    }
+    
+    .log{
+      flex:1;
+      overflow-y:auto;
+      overflow-x:hidden;
+      padding: 24px;
+      scrollbar-width: thin; 
+      scrollbar-color: rgba(66,153,225,.3) transparent;
+      position: relative;
+      min-height: 0;
+    }
+    
+
+    
+    .row{ 
+      display:flex; 
+      flex-direction:column; 
+      gap:6px; 
+      margin:15px 0;
+      opacity: 0;
+      animation: slideIn 0.5s ease-out forwards;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
       }
-    </script>
-  </body>
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .row.you{ align-items:flex-end }
+    
+    .bubble{
+      max-width: 75%;
+      padding: 15px 18px;
+      border-radius: 18px;
+      font-size: 15px;
+      line-height: 1.4;
+      border: 1px solid var(--ring);
+      background: rgba(255,255,255,.9);
+      color: var(--ink);
+      white-space: pre-wrap;
+      box-shadow: 
+        0 4px 12px rgba(2,6,23,.06),
+        0 2px 6px rgba(66,153,225,.04);
+      position: relative;
+      backdrop-filter: blur(5px);
+      transition: all 0.3s ease;
+    }
+    
+    .bubble:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 8px 25px rgba(2,6,23,.1),
+        0 4px 12px rgba(66,153,225,.08);
+    }
+    
+    .you .bubble{ 
+      background: linear-gradient(135deg, rgba(66,153,225,.12), rgba(147,197,253,.08));
+      border-color: rgba(66,153,225,.2);
+      color: var(--ink);
+    }
+    
+    /* Pequeña animación de aparición de las burbujas */
+    .bubble::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(255,255,255,.3), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .bubble:hover::before {
+      opacity: 1;
+    }
+    
+    .ts{ 
+      font-size:11px; 
+      color:var(--muted);
+      font-weight: 500;
+    }
+    .you .ts{ align-self:flex-end }
+
+    /* Barra de entrada mejorada */
+    .bar{
+      display:flex; 
+      align-items:center; 
+      gap:12px;
+      padding: 16px;
+      border-top:1px solid var(--ring);
+      background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(248,250,252,.95));
+      backdrop-filter: blur(10px);
+    }
+    
+    .input{
+      flex:1; 
+      background: rgba(255,255,255,.8);
+      border:2px solid var(--ring);
+      border-radius: 25px; 
+      padding: 13px 20px; 
+      font-size: 15px; 
+      outline: none;
+      transition: all .3s ease;
+      backdrop-filter: blur(5px);
+    }
+    
+    .input:focus{ 
+      border-color: var(--accent-3);
+      box-shadow:
+        0 0 0 4px rgba(66,153,225,.1),
+        0 4px 12px rgba(66,153,225,.15);
+      background: rgba(255,255,255,.95);
+    }
+    
+    .btn{
+      display:inline-grid; 
+      place-items:center; 
+      height:42px; 
+      width:42px; 
+      border-radius:999px;
+      border:1px solid var(--ring); 
+      background: rgba(255,255,255,.9);
+      color:var(--accent); 
+      cursor:pointer;
+      transition: all .3s ease; 
+      box-shadow:
+        0 4px 12px rgba(2,6,23,.06),
+        0 2px 6px rgba(66,153,225,.04);
+      backdrop-filter: blur(5px);
+    }
+    
+    .btn:hover{ 
+      transform: translateY(-3px) scale(1.05);
+      box-shadow:
+        0 8px 25px rgba(2,6,23,.12),
+        0 4px 12px rgba(66,153,225,.15);
+    }
+    
+    .btn.primary{ 
+      width:48px; 
+      height:48px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border:none; 
+      color:#fff;
+      font-size: 16px;
+      animation: softPulse 3s ease-in-out infinite;
+    }
+    
+    .btn.primary:hover {
+      animation: none;
+      transform: translateY(-3px) scale(1.1);
+    }
+
+    /* Barra de chips tranquilizante */
+    .chipsBar{
+      border-top:1px solid var(--ring);
+      background: linear-gradient(135deg, rgba(248,250,252,.9), rgba(237,242,247,.9));
+      padding:16px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .chips{ 
+      display:flex; 
+      justify-content:center; 
+      gap:15px; 
+      flex-wrap:wrap;
+    }
+    
+    .chip{
+      background: rgba(255,255,255,.7);
+      border:1px solid var(--ring);
+      color:var(--ink);
+      padding:10px 18px;
+      border-radius:999px;
+      font-size:14px;
+      font-weight: 500;
+      cursor:pointer;
+      transition: all .3s ease;
+      backdrop-filter: blur(5px);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* Efecto de ondas al hacer hover en los chips */
+    .chip::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: radial-gradient(circle, rgba(66,153,225,.2) 0%, transparent 70%);
+      transition: all .5s ease;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+    }
+    
+    .chip:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+    
+    /* Todos los chips con el mismo estilo */
+    .chip:hover{ 
+      background: rgba(255,255,255,.9);
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 
+        0 8px 25px rgba(2,6,23,.1),
+        0 4px 12px rgba(66,153,225,.15);
+      border-color: var(--accent-3);
+    }
+
+    /* Responsive mejorado */
+    @media (max-width: 720px){
+      .bubble{ max-width: 90% }
+      .header { height: 65px; }
+      .brand { font-size: 20px; }
+      .main { padding: 15px 0; }
+      .shell { border-radius: 16px; }
+      .log { padding: 20px 16px; }
+      .bar { padding: 14px; gap: 10px; }
+      .chips { gap: 12px; }
+      .chip { padding: 9px 16px; font-size: 13px; }
+    }
+
+    /* Scrollbar personalizada */
+    .log::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .log::-webkit-scrollbar-track {
+      background: rgba(66,153,225,.05);
+      border-radius: 3px;
+    }
+    
+    .log::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, var(--accent-3), var(--accent-2));
+      border-radius: 3px;
+      transition: all 0.3s ease;
+    }
+    
+    .log::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, var(--accent-2), var(--accent));
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- Header mejorado -->
+    <header class="header">
+      <div class="container">
+        <div class="brand"><b>PsicoIA</b></div>
+        <div class="statusHead"><div class="dot" id="dot"></div><span id="statusText">Conectando…</span></div>
+      </div>
+    </header>
+
+    <!-- Main con efectos visuales -->
+    <main class="main">
+      <section class="shell">
+        <div class="chat">
+          <div class="log" id="log"></div>
+          <div class="bar">
+            <input id="msg" class="input" placeholder="Contame qué pasa…" autocomplete="off" />
+            <button class="btn" id="clearBtn" title="Limpiar">✕</button>
+            <button class="btn" id="reconnectBtn" title="Reconectar">⟲</button>
+            <button class="btn primary" id="sendBtn" title="Enviar">➤</button>
+          </div>
+        </div>
+        <div class="chipsBar">
+          <div class="chips">
+            <button class="chip" data-text="Estoy atravesando ansiedad. ¿Podés guiarme con un ejercicio corto de respiración?">Ansiedad</button>
+            <button class="chip" data-text="Tengo estrés acumulado. ¿Podés darme 3 pasos para relajarme hoy?">Estrés</button>
+            <button class="chip" data-text="Me siento con poca energía y ánimos bajos. Sugerencias seguras y breves.">Depresión</button>
+            <button class="chip" id="funnyBtn">Pito Chico</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const logEl=document.getElementById('log');
+    const msgEl=document.getElementById('msg');
+    const dotEl=document.getElementById('dot');
+    const statusText=document.getElementById('statusText');
+    const sendBtn=document.getElementById('sendBtn');
+    const clearBtn=document.getElementById('clearBtn');
+    const reconnectBtn=document.getElementById('reconnectBtn');
+
+    let lastRole=null,lastTime=0;
+    
+    // Función mejorada para agregar mensajes con animación
+    function appendMessage(role,text){
+      const normalized=String(text??'').replace(/\n{2,}/g,'\n');
+      const now=Date.now();
+      const canMerge=lastRole===role&&(now-lastTime)<500&&logEl.lastElementChild&&logEl.lastElementChild.classList.contains('row');
+      
+      if(canMerge){
+        const lastRow=logEl.lastElementChild;
+        const bubble=lastRow.querySelector('.bubble');
+        bubble.textContent+=(bubble.textContent?'\n':'')+normalized;
+        lastRow.querySelector('.ts').textContent=new Date().toLocaleTimeString();
+      }else{
+        const row=document.createElement('div');
+        row.className='row '+(role==='you'?'you':'bot');
+        const bubble=document.createElement('div');
+        bubble.className='bubble'; 
+        bubble.textContent=normalized; 
+        row.appendChild(bubble);
+        const ts=document.createElement('div');
+        ts.className='ts'; 
+        ts.textContent=new Date().toLocaleTimeString(); 
+        row.appendChild(ts);
+        logEl.appendChild(row);
+        
+        // Animación suave de aparición
+        setTimeout(() => {
+          row.style.opacity = '1';
+        }, 50);
+      }
+      lastRole=role; 
+      lastTime=now; 
+      
+      // Scroll suave
+      logEl.scrollTo({
+        top: logEl.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+    
+    function setStatus(kind,text){
+      dotEl.className='dot';
+      if(kind==='ok') dotEl.classList.add('ok');
+      else if(kind==='warn') dotEl.classList.add('warn');
+      statusText.textContent=text;
+    }
+
+    // WebSocket con mejor feedback visual
+    const WS_URL="ws://localhost:8765"; 
+    let ws=null;
+    
+    function connect(){
+      setStatus('warn','Conectando…');
+      ws=new WebSocket(WS_URL);
+      ws.onopen =()=>{ 
+        setStatus('ok','Conectado'); 
+        appendMessage('bot','Conexión establecida. ¡Hola! Estoy aquí para acompañarte'); 
+      };
+      ws.onmessage=(e)=>appendMessage('bot', e.data);
+      ws.onerror =()=>setStatus('', 'Error de conexión');
+      ws.onclose  =()=>{
+        setStatus('', 'WS cerrado');
+        appendMessage('bot', 'Conexión perdida. Intentá reconectar cuando quieras.');
+      };
+    }
+    
+    function send(text){
+      if(!ws||ws.readyState!==1){ 
+        appendMessage('bot','No hay conexión activa. Presioná el botón de reconectar'); 
+        return; 
+      }
+      const v=(text??msgEl.value).trim(); 
+      if(!v) return;
+      
+      // Pequeña animación al enviar
+      sendBtn.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        sendBtn.style.transform = '';
+      }, 150);
+      
+      ws.send(v); 
+      appendMessage('you', v); 
+      msgEl.value='';
+    }
+
+    // Interacciones mejoradas
+    sendBtn.onclick=()=>send();
+    msgEl.onkeydown=(e)=>{ 
+      if(e.key==='Enter'){ 
+        e.preventDefault(); 
+        send(); 
+      } 
+    };
+    clearBtn.onclick=()=>{ 
+      logEl.innerHTML=''; 
+      appendMessage('bot', 'Chat limpiado. ¿En qué puedo ayudarte?');
+    };
+    reconnectBtn.onclick=()=>{
+      // Animación de reconexión
+      reconnectBtn.style.transform = 'rotate(360deg)';
+      setTimeout(() => {
+        reconnectBtn.style.transform = '';
+      }, 500);
+      connect();
+    };
+    
+    document.querySelectorAll('.chip').forEach(btn=>{
+      if(btn.id==='funnyBtn') return;
+      btn.addEventListener('click',()=>send(btn.dataset.text||btn.textContent.trim()));
+    });
+    
+    document.getElementById('funnyBtn').onclick=()=>{ 
+      appendMessage('bot','JAJAJA ¡Eso me alegra el día!'); 
+    };
+
+    // Efecto de escritura en el placeholder
+    const placeholders = [
+      "Contame qué pasa…",
+      "¿Cómo te sentís hoy?", 
+      "Estoy aquí para escucharte",
+      "¿En qué puedo acompañarte?"
+    ];
+    let placeholderIndex = 0;
+    
+    setInterval(() => {
+      placeholderIndex = (placeholderIndex + 1) % placeholders.length;
+      msgEl.placeholder = placeholders[placeholderIndex];
+    }, 4000);
+
+    // Conexión inicial
+    connect();
+  </script>
+</body>
 </html>
