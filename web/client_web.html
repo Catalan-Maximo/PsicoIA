@@ -4,6 +4,17 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PsicoIA Web</title>
+  <script>
+    // Early theme set to avoid flash: read saved preference or system preference
+    (function(){
+      try{
+  const saved = localStorage.getItem('psicoia-theme');
+  // Default to dark if the user has no saved preference
+  const theme = saved || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+      }catch(e){ /* ignore in environments blocking storage */ }
+    })();
+  </script>
   <style>
     :root{
       /* Paleta más cálida y tranquilizante */
@@ -99,7 +110,7 @@
       z-index: 1;
     }
 
-    /* Header mejorado */
+    /* Header (base tuyo) */
     .header{
       height:70px;
       display:flex;
@@ -110,7 +121,6 @@
       backdrop-filter: blur(10px);
       position: relative;
     }
-    
     .header::before {
       content: '';
       position: absolute;
@@ -121,7 +131,7 @@
       background: linear-gradient(90deg, transparent, var(--accent-3), transparent);
       animation: softPulse 4s ease-in-out infinite;
     }
-    
+
     .container{ 
       width: min(1200px, 96%); 
       margin: 0 auto; 
@@ -129,14 +139,24 @@
       align-items:center; 
       justify-content:space-between; 
     }
-    
+
+    /* ===== NUEVO: layout minimal del header con grilla, sin afectar otros .container ===== */
+    .header .container{
+      display: grid;
+      grid-template-columns: 1fr auto 1fr; /* izq | centro | der */
+      align-items: center;
+      gap: 12px;
+    }
+    .hdr-left{ justify-self: start; }
+    .hdr-center{ justify-self: center; }
+    .hdr-right{ justify-self: end; }
+
     .brand{ 
       font-weight:800; 
       letter-spacing:.2px; 
       font-size:20px; 
       position: relative;
     }
-    
     .brand b{
       background: linear-gradient(135deg, var(--accent), var(--accent-2), var(--success));
       -webkit-background-clip:text; 
@@ -144,7 +164,7 @@
       color:transparent;
       animation: breathe 6s ease-in-out infinite;
     }
-    
+
     .statusHead{ 
       display:flex; 
       align-items:center; 
@@ -152,8 +172,12 @@
       color:var(--muted); 
       font-size:14px;
       font-weight: 500;
+      /* NUEVO: píldora minimal sutil */
+      padding: 6px 10px;
+      border: 1px solid var(--ring);
+      border-radius: 999px;
+      background: rgba(255,255,255,.9);
     }
-    
     .dot{ 
       width:12px; 
       height:12px; 
@@ -170,6 +194,20 @@
       background:#eab308; 
       box-shadow:0 0 0 3px rgba(234,179,8,.15);
     }
+
+    /* ===== NUEVO: botón modo oscuro minimal ===== */
+    .themeBtn{
+      height:36px; width:36px;
+      display:grid; place-items:center;
+      border-radius:10px;
+      border:1px solid var(--ring);
+      background:#fff;
+      color:#334155;
+      cursor:pointer;
+      transition:transform .2s ease, box-shadow .2s ease;
+    }
+    .themeBtn:hover{ transform:translateY(-1px); box-shadow:0 6px 14px rgba(2,6,23,.08) }
+    .themeBtn__icon{ font-size:16px; line-height:1 }
 
     /* Main mejorado */
     .main{
@@ -222,6 +260,7 @@
       flex-direction:column;
       background: linear-gradient(180deg, #fafbfc 0%, #f8fafc 100%);
       min-height: 0;
+      position: relative;
     }
     
     .log{
@@ -235,8 +274,6 @@
       min-height: 0;
     }
     
-
-    
     .row{ 
       display:flex; 
       flex-direction:column; 
@@ -245,18 +282,10 @@
       opacity: 0;
       animation: slideIn 0.5s ease-out forwards;
     }
-    
     @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    
     .row.you{ align-items:flex-end }
     
     .bubble{
@@ -276,21 +305,17 @@
       backdrop-filter: blur(5px);
       transition: all 0.3s ease;
     }
-    
     .bubble:hover {
       transform: translateY(-2px);
       box-shadow: 
         0 8px 25px rgba(2,6,23,.1),
         0 4px 12px rgba(66,153,225,.08);
     }
-    
     .you .bubble{ 
       background: linear-gradient(135deg, rgba(66,153,225,.12), rgba(147,197,253,.08));
       border-color: rgba(66,153,225,.2);
       color: var(--ink);
     }
-    
-    /* Pequeña animación de aparición de las burbujas */
     .bubble::before {
       content: '';
       position: absolute;
@@ -300,16 +325,9 @@
       opacity: 0;
       transition: opacity 0.3s ease;
     }
+    .bubble:hover::before { opacity: 1; }
     
-    .bubble:hover::before {
-      opacity: 1;
-    }
-    
-    .ts{ 
-      font-size:11px; 
-      color:var(--muted);
-      font-weight: 500;
-    }
+    .ts{ font-size:11px; color:var(--muted); font-weight: 500; }
     .you .ts{ align-self:flex-end }
 
     /* Barra de entrada mejorada */
@@ -322,7 +340,6 @@
       background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(248,250,252,.95));
       backdrop-filter: blur(10px);
     }
-    
     .input{
       flex:1; 
       background: rgba(255,255,255,.8);
@@ -334,7 +351,6 @@
       transition: all .3s ease;
       backdrop-filter: blur(5px);
     }
-    
     .input:focus{ 
       border-color: var(--accent-3);
       box-shadow:
@@ -342,7 +358,6 @@
         0 4px 12px rgba(66,153,225,.15);
       background: rgba(255,255,255,.95);
     }
-    
     .btn{
       display:inline-grid; 
       place-items:center; 
@@ -359,14 +374,12 @@
         0 2px 6px rgba(66,153,225,.04);
       backdrop-filter: blur(5px);
     }
-    
     .btn:hover{ 
       transform: translateY(-3px) scale(1.05);
       box-shadow:
         0 8px 25px rgba(2,6,23,.12),
         0 4px 12px rgba(66,153,225,.15);
     }
-    
     .btn.primary{ 
       width:48px; 
       height:48px;
@@ -376,7 +389,6 @@
       font-size: 16px;
       animation: softPulse 3s ease-in-out infinite;
     }
-    
     .btn.primary:hover {
       animation: none;
       transform: translateY(-3px) scale(1.1);
@@ -389,14 +401,12 @@
       padding:16px;
       backdrop-filter: blur(10px);
     }
-    
     .chips{ 
       display:flex; 
       justify-content:center; 
       gap:15px; 
       flex-wrap:wrap;
     }
-    
     .chip{
       background: rgba(255,255,255,.7);
       border:1px solid var(--ring);
@@ -411,8 +421,6 @@
       position: relative;
       overflow: hidden;
     }
-    
-    /* Efecto de ondas al hacer hover en los chips */
     .chip::before {
       content: '';
       position: absolute;
@@ -425,13 +433,7 @@
       transform: translate(-50%, -50%);
       border-radius: 50%;
     }
-    
-    .chip:hover::before {
-      width: 300px;
-      height: 300px;
-    }
-    
-    /* Todos los chips con el mismo estilo */
+    .chip:hover::before { width: 300px; height: 300px; }
     .chip:hover{ 
       background: rgba(255,255,255,.9);
       transform: translateY(-3px) scale(1.05);
@@ -455,33 +457,115 @@
     }
 
     /* Scrollbar personalizada */
-    .log::-webkit-scrollbar {
-      width: 6px;
-    }
-    
-    .log::-webkit-scrollbar-track {
-      background: rgba(66,153,225,.05);
-      border-radius: 3px;
-    }
-    
+    .log::-webkit-scrollbar { width: 6px; }
+    .log::-webkit-scrollbar-track { background: rgba(66,153,225,.05); border-radius: 3px; }
     .log::-webkit-scrollbar-thumb {
       background: linear-gradient(180deg, var(--accent-3), var(--accent-2));
       border-radius: 3px;
       transition: all 0.3s ease;
     }
-    
     .log::-webkit-scrollbar-thumb:hover {
       background: linear-gradient(180deg, var(--accent-2), var(--accent));
     }
+
+    /* ===== NUEVO: Dark Mode variables (sin tocar tu HTML) ===== */
+    :root[data-theme="dark"]{
+      --bg1:#0f172a; --bg2:#0b1222; --ink:#e5e7eb; --muted:#9aa3b2;
+      --ring:rgba(148,163,184,.18); --card:#0f172a; --chip:#0f1a2b; --chip-hover:#13223a;
+    }
+    :root[data-theme="dark"] body{ background: var(--bg1); }
+    :root[data-theme="dark"] .header{
+      background: linear-gradient(135deg, rgba(20,28,46,.92), rgba(12,20,34,.92));
+    }
+    :root[data-theme="dark"] .statusHead,
+    :root[data-theme="dark"] .themeBtn{
+      background:#0b1324; border-color:var(--ring); color:var(--ink);
+    }
+    :root[data-theme="dark"] .brand b{ color: transparent; }
+    :root[data-theme="dark"] .shell{
+      background: linear-gradient(180deg,#0f1a2d 0%, #0c1527 100%);
+      border-color: var(--ring);
+      box-shadow: 0 20px 60px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    :root[data-theme="dark"] .bar{ background: linear-gradient(135deg, rgba(16,24,40,.9), rgba(12,20,34,.9)); }
+    :root[data-theme="dark"] .input{ background:#0b1324; border-color:var(--ring); color:var(--ink); }
+    :root[data-theme="dark"] .btn{ background:#0b1324; border-color:var(--ring); color:var(--accent-2); }
+    :root[data-theme="dark"] .btn.primary{ background: linear-gradient(135deg, var(--accent-2), var(--accent)); }
+    :root[data-theme="dark"] .bubble{ background:#0b1324; color:var(--ink); border-color:var(--ring); }
+    :root[data-theme="dark"] .you .bubble{
+      background: linear-gradient(135deg, rgba(30,58,138,.35), rgba(2,132,199,.18));
+      border-color: rgba(56,189,248,.25);
+    }
+    /* Additional dark overrides to cover areas that used hard-coded light colors */
+    :root[data-theme="dark"] .chat{
+      background: linear-gradient(180deg, rgba(11,20,34,0.95) 0%, rgba(7,12,24,0.95) 100%);
+    }
+    :root[data-theme="dark"] .chipsBar{
+      background: linear-gradient(135deg, rgba(8,14,24,0.88), rgba(12,20,34,0.88));
+      border-top-color: var(--ring);
+    }
+    :root[data-theme="dark"] .chip{
+      background: var(--chip);
+      color: var(--ink);
+      border-color: var(--ring);
+    }
+
+    /* ===== CHICHE: typing ===== */
+    .typing .bubble{max-width: 180px; display:inline-flex; gap:6px; align-items:center}
+    .dots{display:inline-flex; gap:6px}
+    .dotDot{width:6px;height:6px;border-radius:999px;background:var(--accent-2);opacity:.7;animation:blink 1.4s infinite}
+    .dotDot:nth-child(2){animation-delay:.15s}
+    .dotDot:nth-child(3){animation-delay:.3s}
+    @keyframes blink{0%,80%,100%{opacity:.2; transform:translateY(0)}40%{opacity:1; transform:translateY(-3px)}}
+
+    /* ===== CHICHE: toasts ===== */
+    .toasts{position:fixed; left:50%; bottom:20px; transform:translateX(-50%); z-index:50; display:flex; flex-direction:column; gap:10px}
+    .toast{padding:10px 14px; border-radius:12px; background:rgba(255,255,255,.95); border:1px solid var(--ring); box-shadow:0 10px 30px rgba(2,6,23,.12); font-size:13px; color:var(--ink)}
+  :root[data-theme="dark"] .toast{background:#0b1324; color:var(--ink)}
+
+    /* ===== CHICHE: scroll to bottom ===== */
+    .scrollDown{position:absolute; right:14px; bottom:14px; height:36px; width:36px; border-radius:999px; border:1px solid var(--ring); background:#fff; color:var(--accent); display:none; place-items:center; cursor:pointer; box-shadow:0 6px 16px rgba(2,6,23,.10)}
+    .scrollDown.show{display:grid}
+  :root[data-theme="dark"] .scrollDown{background:#0b1324; color:var(--accent-2)}
+    
+    /* ===== CHICHE: separador de fecha ===== */
+    .daySep{display:flex; align-items:center; gap:12px; margin:10px 0; opacity:.7}
+    .daySep hr{flex:1; border:none; height:1px; background:var(--ring)}
+    .daySep span{font-size:12px; color:var(--muted)}
   </style>
 </head>
 <body>
+  <canvas id="bgParticles" aria-hidden="true"></canvas>
+  <style>
+    /* Canvas particles: hidden by default, visible only in dark mode */
+    #bgParticles{ position:fixed; inset:0; width:100%; height:100%; pointer-events:none; display:none; z-index:0; }
+    :root[data-theme="dark"] #bgParticles{ display:block; }
+    /* Ensure main content sits above the canvas */
+    .page{ position: relative; z-index: 1; }
+  </style>
   <div class="page">
-    <!-- Header mejorado -->
+    <!-- Header minimalista con centro / derecha / izquierda -->
     <header class="header">
       <div class="container">
-        <div class="brand"><b>PsicoIA</b></div>
-        <div class="statusHead"><div class="dot" id="dot"></div><span id="statusText">Conectando…</span></div>
+        <!-- IZQUIERDA: botón modo oscuro (NUEVO) -->
+        <div class="hdr-left">
+          <button id="themeToggle" class="themeBtn" aria-label="Cambiar tema">
+            <span class="themeBtn__icon" aria-hidden="true">☾</span>
+          </button>
+        </div>
+
+        <!-- CENTRO: marca (tu PsicoIA) -->
+        <div class="hdr-center">
+          <div class="brand"><b>PsicoIA</b></div>
+        </div>
+
+        <!-- DERECHA: estado (tus mismos IDs) -->
+        <div class="hdr-right">
+          <div class="statusHead">
+            <div class="dot" id="dot"></div>
+            <span id="statusText">Conectando…</span>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -490,6 +574,10 @@
       <section class="shell">
         <div class="chat">
           <div class="log" id="log"></div>
+
+          <!-- CHICHE: botón bajar -->
+          <button id="scrollDown" class="scrollDown" title="Ir al final">↓</button>
+
           <div class="bar">
             <input id="msg" class="input" placeholder="Contame qué pasa…" autocomplete="off" />
             <button class="btn" id="clearBtn" title="Limpiar">✕</button>
@@ -501,15 +589,49 @@
           <div class="chips">
             <button class="chip" data-text="Estoy atravesando ansiedad. ¿Podés guiarme con un ejercicio corto de respiración?">Ansiedad</button>
             <button class="chip" data-text="Tengo estrés acumulado. ¿Podés darme 3 pasos para relajarme hoy?">Estrés</button>
-            <button class="chip" data-text="Me siento con poca energía y ánimos bajos. Sugerencias seguras y breves.">Depresión</button>
-            <button class="chip" id="funnyBtn">Pito Chico</button>
+            <button class="chip" data-text="Me siento con poca energía y ánimos bajos que creo que son indicios de depresión. Sugerencias seguras y breves.">Depresión</button>
+            <button class="chip" data-text="Me siento desmotivado y sin ganas de hacer nada.">Desmotivación</button>
           </div>
         </div>
       </section>
     </main>
   </div>
 
+  <!-- CHICHE: contenedor de toasts -->
+  <div class="toasts" id="toasts"></div>
+
   <script>
+    // === MODO OSCURO (NUEVO): mejora robusta usando data-theme y prefers-color-scheme ===
+    (function initTheme() {
+      const saved = localStorage.getItem('psicoia-theme');
+      // Default to dark if no saved preference
+      const theme = saved || 'dark';
+      setTheme(theme);
+    })();
+
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('psicoia-theme', theme);
+      updateThemeIcon();
+    }
+
+    function getTheme() {
+      return document.documentElement.getAttribute('data-theme') || 'light';
+    }
+
+    function toggleTheme() {
+      setTheme(getTheme() === 'light' ? 'dark' : 'light');
+    }
+
+    function updateThemeIcon() {
+      const el = document.querySelector('#themeToggle .themeBtn__icon');
+      if (!el) return;
+      el.textContent = getTheme() === 'dark' ? '☀' : '☾';
+    }
+
+    document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+
+    // === Tu lógica original ===
     const logEl=document.getElementById('log');
     const msgEl=document.getElementById('msg');
     const dotEl=document.getElementById('dot');
@@ -517,20 +639,48 @@
     const sendBtn=document.getElementById('sendBtn');
     const clearBtn=document.getElementById('clearBtn');
     const reconnectBtn=document.getElementById('reconnectBtn');
+    const toastsEl=document.getElementById('toasts');
+    const scrollDownBtn=document.getElementById('scrollDown');
 
     let lastRole=null,lastTime=0;
-    
+    let lastDayLabel=null;
+
+    /* CHICHE: helper toast */
+    function toast(msg, ms=2200){
+      const t=document.createElement('div');
+      t.className='toast'; t.textContent=msg;
+      toastsEl.appendChild(t);
+      setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(6px)'; }, ms-300);
+      setTimeout(()=>toastsEl.removeChild(t), ms);
+    }
+
+    /* CHICHE: separador de fecha */
+    function maybeAddDaySeparator(date){
+      const label=date.toLocaleDateString();
+      if(label!==lastDayLabel){
+        const wrap=document.createElement('div'); wrap.className='daySep';
+        const hr1=document.createElement('hr'); const hr2=document.createElement('hr');
+        const span=document.createElement('span'); span.textContent=label;
+        wrap.appendChild(hr1); wrap.appendChild(span); wrap.appendChild(hr2);
+        logEl.appendChild(wrap);
+        lastDayLabel=label;
+      }
+    }
+
     // Función mejorada para agregar mensajes con animación
     function appendMessage(role,text){
       const normalized=String(text??'').replace(/\n{2,}/g,'\n');
-      const now=Date.now();
-      const canMerge=lastRole===role&&(now-lastTime)<500&&logEl.lastElementChild&&logEl.lastElementChild.classList.contains('row');
+      const now=new Date();
+      maybeAddDaySeparator(now);
+
+      const canMerge=lastRole===role&&(Date.now()-lastTime)<500&&
+        logEl.lastElementChild&&logEl.lastElementChild.classList.contains('row');
       
       if(canMerge){
         const lastRow=logEl.lastElementChild;
         const bubble=lastRow.querySelector('.bubble');
         bubble.textContent+=(bubble.textContent?'\n':'')+normalized;
-        lastRow.querySelector('.ts').textContent=new Date().toLocaleTimeString();
+        lastRow.querySelector('.ts').textContent=now.toLocaleTimeString();
       }else{
         const row=document.createElement('div');
         row.className='row '+(role==='you'?'you':'bot');
@@ -540,25 +690,16 @@
         row.appendChild(bubble);
         const ts=document.createElement('div');
         ts.className='ts'; 
-        ts.textContent=new Date().toLocaleTimeString(); 
+        ts.textContent=now.toLocaleTimeString(); 
         row.appendChild(ts);
         logEl.appendChild(row);
-        
-        // Animación suave de aparición
-        setTimeout(() => {
-          row.style.opacity = '1';
-        }, 50);
       }
       lastRole=role; 
-      lastTime=now; 
+      lastTime=Date.now(); 
       
-      // Scroll suave
-      logEl.scrollTo({
-        top: logEl.scrollHeight,
-        behavior: 'smooth'
-      });
+      logEl.scrollTo({ top: logEl.scrollHeight, behavior: 'smooth' });
     }
-    
+
     function setStatus(kind,text){
       dotEl.className='dot';
       if(kind==='ok') dotEl.classList.add('ok');
@@ -570,6 +711,30 @@
     const WS_URL="ws://localhost:8765"; 
     let ws=null;
     
+    // CHICHE: indicador "escribiendo…" del bot
+    let typingRow=null;
+    function showTyping(){
+      if(typingRow) return;
+      typingRow=document.createElement('div');
+      typingRow.className='row bot typing';
+      const bubble=document.createElement('div');
+      bubble.className='bubble';
+      const dots=document.createElement('div'); dots.className='dots';
+      dots.innerHTML='<span class="dotDot"></span><span class="dotDot"></span><span class="dotDot"></span>';
+      bubble.appendChild(dots);
+      typingRow.appendChild(bubble);
+      const ts=document.createElement('div'); ts.className='ts'; ts.textContent='…';
+      typingRow.appendChild(ts);
+      logEl.appendChild(typingRow);
+      logEl.scrollTo({ top: logEl.scrollHeight, behavior: 'smooth' });
+    }
+    function hideTyping(){
+      if(typingRow && typingRow.parentNode){
+        typingRow.parentNode.removeChild(typingRow);
+        typingRow=null;
+      }
+    }
+
     function connect(){
       setStatus('warn','Conectando…');
       ws=new WebSocket(WS_URL);
@@ -577,7 +742,7 @@
         setStatus('ok','Conectado'); 
         appendMessage('bot','Conexión establecida. ¡Hola! Estoy aquí para acompañarte'); 
       };
-      ws.onmessage=(e)=>appendMessage('bot', e.data);
+      ws.onmessage=(e)=>{ hideTyping(); appendMessage('bot', e.data); };
       ws.onerror =()=>setStatus('', 'Error de conexión');
       ws.onclose  =()=>{
         setStatus('', 'WS cerrado');
@@ -593,46 +758,36 @@
       const v=(text??msgEl.value).trim(); 
       if(!v) return;
       
-      // Pequeña animación al enviar
-      sendBtn.style.transform = 'scale(0.95)';
-      setTimeout(() => {
-        sendBtn.style.transform = '';
-      }, 150);
-      
+      // animación al enviar
+      sendBtn.style.transform='scale(0.95)'; setTimeout(()=>sendBtn.style.transform='',150);
       ws.send(v); 
       appendMessage('you', v); 
       msgEl.value='';
+      localStorage.removeItem('psicoia-draft'); // CHICHE: reset draft
+      showTyping(); // CHICHE: mostrar "escribiendo…" hasta que llegue respuesta
     }
 
     // Interacciones mejoradas
     sendBtn.onclick=()=>send();
     msgEl.onkeydown=(e)=>{ 
-      if(e.key==='Enter'){ 
-        e.preventDefault(); 
-        send(); 
-      } 
+      if((e.metaKey||e.ctrlKey) && e.key==='Enter'){ e.preventDefault(); send(); return; } // CHICHE: Ctrl/Cmd+Enter
+      if(e.key==='Enter'){ e.preventDefault(); send(); } 
+      if(e.key==='Escape'){ msgEl.value=''; } // CHICHE: Esc limpia
     };
+
     clearBtn.onclick=()=>{ 
       logEl.innerHTML=''; 
       appendMessage('bot', 'Chat limpiado. ¿En qué puedo ayudarte?');
     };
-    reconnectBtn.onclick=()=>{
-      // Animación de reconexión
-      reconnectBtn.style.transform = 'rotate(360deg)';
-      setTimeout(() => {
-        reconnectBtn.style.transform = '';
-      }, 500);
+    reconnectBtn.onclick=()=>{ 
+      reconnectBtn.style.transform='rotate(360deg)';
+      setTimeout(()=>{reconnectBtn.style.transform=''},500);
       connect();
     };
     
     document.querySelectorAll('.chip').forEach(btn=>{
-      if(btn.id==='funnyBtn') return;
       btn.addEventListener('click',()=>send(btn.dataset.text||btn.textContent.trim()));
     });
-    
-    document.getElementById('funnyBtn').onclick=()=>{ 
-      appendMessage('bot','JAJAJA ¡Eso me alegra el día!'); 
-    };
 
     // Efecto de escritura en el placeholder
     const placeholders = [
@@ -642,14 +797,163 @@
       "¿En qué puedo acompañarte?"
     ];
     let placeholderIndex = 0;
-    
     setInterval(() => {
       placeholderIndex = (placeholderIndex + 1) % placeholders.length;
       msgEl.placeholder = placeholders[placeholderIndex];
     }, 4000);
 
+    // === CHICHE: autosave del borrador ===
+    const DRAFT_KEY='psicoia-draft';
+    msgEl.value=localStorage.getItem(DRAFT_KEY)||'';
+    msgEl.addEventListener('input',()=>localStorage.setItem(DRAFT_KEY,msgEl.value));
+
+    // === CHICHE: copiar burbuja con doble click ===
+    logEl.addEventListener('dblclick',(e)=>{
+      const bubble=e.target.closest('.bubble');
+      if(!bubble) return;
+      const txt=bubble.textContent.trim();
+      if(!txt) return;
+      navigator.clipboard?.writeText(txt).then(()=>toast('Mensaje copiado'));
+    });
+
+    // === CHICHE: botón bajar visible si no estás al final ===
+    function updateScrollBtn(){
+      const nearBottom = (logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight) < 60;
+      scrollDownBtn.classList.toggle('show', !nearBottom);
+    }
+    logEl.addEventListener('scroll', updateScrollBtn);
+    scrollDownBtn.addEventListener('click', ()=>{
+      logEl.scrollTo({top:logEl.scrollHeight, behavior:'smooth'});
+    });
+
+    // === CHICHE: atajo para enfocar ===
+    window.addEventListener('keydown',(e)=>{
+      if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){
+        e.preventDefault(); msgEl.focus();
+      }
+    });
+
     // Conexión inicial
     connect();
+  </script>
+  <script>
+    // Continuous particles emitter for dark theme.
+    (function(){
+      const canvas = document.getElementById('bgParticles');
+      if(!canvas) return;
+      const ctx = canvas.getContext && canvas.getContext('2d');
+      if(!ctx) return;
+
+      let W=0,H=0,particles=[],raf=null,enabled=false,lastEmit=0;
+      const MAX_BASE = 60; // target density multiplier
+
+      function fit(){
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        W = canvas.clientWidth = window.innerWidth;
+        H = canvas.clientHeight = window.innerHeight;
+        canvas.width = Math.round(W * dpr);
+        canvas.height = Math.round(H * dpr);
+        ctx.setTransform(dpr,0,0,dpr,0,0);
+      }
+
+      function createParticle(fromBottom=true){
+        return {
+          x: Math.random()*W,
+          y: fromBottom ? (H + Math.random()*40) : Math.random()*H,
+          r: 0.6 + Math.random()*3.2,
+          vx: (Math.random()-0.5)*0.6,
+          // Make upward velocity stronger so particles clearly rise
+          vy: -0.6 - Math.random()*0.8,
+          life: 100 + Math.random()*240,
+          alpha: 0.05 + Math.random()*0.18,
+          sway: Math.random()*2*Math.PI
+        };
+      }
+
+      function emit(count=1){
+        for(let i=0;i<count;i++){
+          if(particles.length > maxParticles()) {
+            // recycle oldest if too many
+            particles.shift();
+          }
+          particles.push(createParticle(true));
+        }
+      }
+
+      function maxParticles(){
+        return Math.round(Math.max(30, Math.min(160, (W*H)/(1280*720)*MAX_BASE)));
+      }
+
+      function loop(){
+        ctx.clearRect(0,0,W,H);
+        const t = Date.now()/1000;
+
+        // Emit periodically to ensure continuous flow
+        const now = Date.now();
+        const emitInterval = 120; // ms between spawns
+        if(now - lastEmit > emitInterval && particles.length < maxParticles()){
+          emit(1 + Math.floor(Math.random()*2));
+          lastEmit = now;
+        }
+
+        for(let i=particles.length-1;i>=0;i--){
+          const p = particles[i];
+          p.x += p.vx + Math.sin(t + p.sway)*0.22;
+          p.y += p.vy;
+          p.life -= 1;
+
+          // fade out near end of life
+          let a = p.alpha * Math.max(0, Math.min(1, p.life/200));
+
+          // draw soft particle
+          const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r*10);
+          grad.addColorStop(0, `rgba(180,200,255,${a})`);
+          grad.addColorStop(0.6, `rgba(90,140,255,${a*0.25})`);
+          grad.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r*10, 0, Math.PI*2);
+          ctx.fill();
+
+          // recycle when off top or dead to keep continuous appearance
+          if(p.y + p.r < -30 || p.life <= 0){
+            // replace with new particle from bottom immediately
+            particles[i] = createParticle(true);
+          }
+        }
+
+        raf = requestAnimationFrame(loop);
+      }
+
+      function start(){
+        if(enabled) return; enabled=true;
+        fit();
+        // seed some particles so they appear immediately
+        const seed = Math.round(Math.max(12, Math.min(80, (W*H)/(1280*720)*20)));
+        for(let i=0;i<seed;i++) particles.push(createParticle(false));
+        // ensure some are coming from bottom too
+        emit(Math.round(seed*0.25));
+        lastEmit = Date.now();
+        loop();
+      }
+      function stop(){
+        if(!enabled) return; enabled=false;
+        if(raf) cancelAnimationFrame(raf); raf=null;
+        ctx.clearRect(0,0,W,H);
+        particles = [];
+      }
+
+      window.addEventListener('resize', ()=>{ if(enabled) fit(); });
+
+      const mo = new MutationObserver(()=>{
+        const dark = document.documentElement.getAttribute('data-theme')==='dark';
+        if(dark) start(); else stop();
+      });
+      mo.observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+
+      // initial check
+      setTimeout(()=>{ if(document.documentElement.getAttribute('data-theme')==='dark') start(); }, 50);
+    })();
   </script>
 </body>
 </html>
