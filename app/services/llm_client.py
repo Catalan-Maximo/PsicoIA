@@ -1,7 +1,19 @@
+# app/services/llm_client.py
+"""
+Asincronismo LLM:
+- httpx.AsyncClient realiza la llamada HTTP sin bloquear el loop.
+- Se incluye 'trace_id' en headers/logs para correlacionar cada POST con un usuario/mensaje.
+- Si Groq tarda, el event loop sigue atendiendo otras conexiones (concurrencia real).
+"""
+
 import httpx
 import ast
+import time
 from pathlib import Path
 from app.config import settings
+from app.utils.logger import get_logger
+
+log = get_logger("llm")
 
 def _read_system_prompt_from_file(module_basename: str) -> str | None:
     """Read SYSTEM_PROMPT value from app/prompts/<module_basename>.py using ast.
@@ -42,18 +54,20 @@ def _load_prompt_for_state(state: str) -> str | None:
     return _read_system_prompt_from_file(module_basename)
 
 
-async def llm_generate(user_text: str, state: str) -> str:
+async def llm_generate(user_text: str, state: str, trace_id: str | None = None) -> str:
     """
-    Llama a LLaMA en Groq usando la API OpenAI-compatible.
-    Requiere GROQ_API_KEY y MODEL_NAME en el .env
+    Llama a LLaMA en Groq (API OpenAI-compatible).
+    Requiere GROQ_API_KEY y MODEL_NAME en el .env.
+    Usa settings.LLM_URL si está definido; si no, fallback al endpoint de Groq.
     """
-    api_key = getattr(settings, "GROQ_API_KEY", None) 
-
+    api_key = getattr(settings, "GROQ_API_KEY", None)
     if not api_key:
         # Fallback offline si no hay API key
         return "Estoy para acompañarte. Probemos respirar suave 4-4-4-4 y contame qué sentís ahora."
 
-    model = settings.MODEL_NAME 
+    # URL elegida: el settings primero; si no, fallback Groq
+    url = getattr(settings, "LLM_URL", None) or "https://api.groq.com/openai/v1/chat/completions"
+    model = settings.MODEL_NAME
     system_prompt = _load_prompt_for_state(state)
     if not system_prompt:
         return "(No SYSTEM_PROMPT found — create app/prompts/promptgeneral.py with SYSTEM_PROMPT)"
@@ -62,6 +76,10 @@ async def llm_generate(user_text: str, state: str) -> str:
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
+    # Trazabilidad opcional (útil en logs/proxies)
+    if trace_id:
+        headers["X-Request-ID"] = trace_id
+
     payload = {
         "model": model,
         "messages": [
@@ -74,14 +92,19 @@ async def llm_generate(user_text: str, state: str) -> str:
     }
 
     try:
+        t0 = time.perf_counter()
+        log.info(f"[{trace_id or '-'}] POST {url} model={model} state={state} len={len(user_text)}")
         async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(settings.LLM_URL, headers=headers, json=payload)
+            resp = await client.post(url, headers=headers, json=payload)
             resp.raise_for_status()
             data = resp.json()
-            # Respuesta OpenAI-like
-            return (data.get("choices", [{}])[0]
-                        .get("message", {})
-                        .get("content", "")
-                        .strip()) or "No recibí respuesta del modelo."
+            content = (data.get("choices", [{}])[0]
+                           .get("message", {})
+                           .get("content", "")
+                           .strip())
+            dt_ms = (time.perf_counter() - t0) * 1000
+            log.info(f"[{trace_id or '-'}] LLM OK ({len(content or '')} chars) {dt_ms:.0f} ms")
+            return content or "No recibí respuesta del modelo."
     except Exception as e:
+        log.error(f"[{trace_id or '-'}] Groq error: {e}")
         return f"(Error al consultar Groq: {e})"

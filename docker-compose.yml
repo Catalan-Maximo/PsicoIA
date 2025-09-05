@@ -1,21 +1,25 @@
 services:
   app:
     build: .
+    image: psicoia:latest         # <-- la construimos acá
     container_name: psicoia_app
     env_file: .env
     command: ["python", "-m", "app.server"]
     ports:
       - "${APP_PORT:-5001}:5001"
-  # no DB dependency
 
   gateway:
-    build: .
+    image: psicoia:latest         # <-- reutiliza la MISMA imagen
     container_name: psicoia_gateway
     env_file: .env
+    environment:
+      - TCP_HOST=app              # dentro de la red Docker, el host de la app es 'app'
+      - TCP_PORT=${APP_PORT:-5001}
+      - WS_HOST=0.0.0.0
+      - WS_PORT=8765
     command: ["python", "-m", "gateway.ws_gateway"]
     ports:
       - "8765:8765"
     depends_on:
       app:
         condition: service_started
-  # DB services removed per project decision

@@ -3,6 +3,14 @@ import asyncio
 import websockets
 from app.config import settings
 
+"""
+Gateway WebSocket ↔ TCP:
+- Por CADA conexión WebSocket del navegador, se abre UNA conexión TCP propia hacia el server 'app'.
+- Mapeo 1:1 (WS cliente) ↔ (TCP cliente) garantiza que sesiones no se mezclen.
+- Concurrencia por I/O: websockets.serve() agenda una coroutine por WS; asyncio.open_connection() usa sockets no bloqueantes.
+- En Docker, TCP_HOST='app' cablea el socket interno gateway->app por la red del compose.
+"""
+
 # --- Config (con defaults sensatos para correr LOCAL) ---
 TCP_HOST = os.getenv("TCP_HOST", "127.0.0.1")                 # en Docker usarás 'app'
 TCP_PORT = int(os.getenv("TCP_PORT", settings.APP_PORT))      # 5001 por defecto
