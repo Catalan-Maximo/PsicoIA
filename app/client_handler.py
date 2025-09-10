@@ -21,13 +21,6 @@ log = get_logger("client")
 SEM_GLOBAL = asyncio.Semaphore(settings.MAX_IN_FLIGHT)
 USER_SEQ = itertools.count(1)   # Usuario-1, Usuario-2, ...
 
-# Heurística mínima de estado
-def classify_state(text: str) -> str:
-    t = text.lower()
-    if "ataque" in t or "pánico" in t or "panico" in t:
-        return "aguda"
-    return "moderada"
-
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     peer = writer.get_extra_info("peername")
     user = f"Usuario-{next(USER_SEQ)}"
@@ -69,18 +62,18 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 # Concurrency y trazabilidad:
                 # - 'trace_id' vincula cada request al LLM con el usuario y nro de mensaje (Usuario-X:mY).
                 # - Esto permite ver en logs a qué usuario corresponde cada POST y su latencia.
-                state = classify_state(msg)
                 trace_id = f"{user}:m{next(msg_counter)}"
 
                 t0 = time.perf_counter()
-                log.info(f"[{trace_id}] → LLM start (state={state}, len={len(msg)})")
+                log.info(f"[{trace_id}] → LLM start (len={len(msg)})")
 
-                llm_reply = await llm_generate(msg, state, trace_id=trace_id)
+                # Usamos 'user' como conversation_id para mantener el historial por conexión
+                llm_reply = await llm_generate(msg, trace_id=trace_id, conversation_id=user)
 
                 dt_ms = (time.perf_counter() - t0) * 1000
                 log.info(f"[{trace_id}] ← LLM ok ({len(llm_reply)} chars) {dt_ms:.0f} ms")
 
-                out = f"{('Veo señales de ansiedad aguda. Vamos paso a paso.' if state=='aguda' else 'Gracias por compartir cómo te sentís.')}\n\n{llm_reply}"
+                out = f"{llm_reply}"
                 writer.write((out + "\n").encode("utf-8"))
                 await writer.drain()
 
