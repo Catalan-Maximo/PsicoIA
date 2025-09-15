@@ -38,7 +38,7 @@ MODEL_NAME=meta-llama/llama-3.1-8b-instant
 # (Opcional) LLM_URL=https://mi-endpoint/openai/v1/chat/completions
 ```
 
-2. `app/prompts/promptgeneral.py` debe definir la constante `SYSTEM_PROMPT` con el prompt del sistema.
+2. En `app/prompts/promptgeneral.py` debe definir la constante `SYSTEM_PROMPT` con el prompt del sistema.
 
 ## Estructura del repositorio (resumen)
 
@@ -52,9 +52,10 @@ MODEL_NAME=meta-llama/llama-3.1-8b-instant
 - `web/` — cliente web simple (`client_web.html`)
 - `Dockerfile`, `docker-compose.yml`, `requirements.txt`
 
-## Ejecutar (recomendado: Docker)
+## Ejecutar:
+### Opción A: Docker (recomendada)
 
-Desde la raíz del proyecto:
+Desde la raíz del proyecto (con Docker activo):
 
 ```powershell
 docker compose build
@@ -86,6 +87,23 @@ Reconstruir después de cambios en el código:
 docker compose up -d --build
 ```
 
+### Opción B: Consola/Terminal
+
+Desde la raíz del proyecto:
+
+```powershell
+python -m app.server
+#y luego en otra consola/terminal
+python -m gateway.ws_gateway
+```
+
+Para detener:
+
+```powershell
+#Ctrl + C, en ambas consolas
+^C
+```
+
 ## Probar la aplicación
 
 Opción A — Cliente web (recomendado)
@@ -101,6 +119,12 @@ nc localhost 5001
 # o
 telnet localhost 5001
 ```
+En algunos casos, "nc" y "telnet" no están habilitados, entonces se puede usar wsl (solo con "nc"):
+
+```powershell
+wsl nc localhost 5001
+```
+Aclaración: El puerto debe ser el mismo que está en `docker-compose.yml`, del lado izquierdo. Ej: `5002:5001`, `5002` en este caso.
 
 Escribe mensajes y observa las respuestas.
 

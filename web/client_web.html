@@ -279,12 +279,18 @@
       flex-direction:column; 
       gap:6px; 
       margin:15px 0;
-      opacity: 0;
+      /* Importante: por defecto visible; la animación se aplica si está permitida */
+      opacity: 1;
       animation: slideIn 0.5s ease-out forwards;
     }
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+    /* Si el sistema o el usuario prefieren menos movimiento, no animar
+       y mantener visibles los mensajes. */
+    @media (prefers-reduced-motion: reduce){
+      .row{ animation:none !important; opacity:1 !important; transform:none !important; }
     }
     .row.you{ align-items:flex-end }
     
@@ -490,7 +496,13 @@
     :root[data-theme="dark"] .bar{ background: linear-gradient(135deg, rgba(16,24,40,.9), rgba(12,20,34,.9)); }
     :root[data-theme="dark"] .input{ background:#0b1324; border-color:var(--ring); color:var(--ink); }
     :root[data-theme="dark"] .btn{ background:#0b1324; border-color:var(--ring); color:var(--accent-2); }
-    :root[data-theme="dark"] .btn.primary{ background: linear-gradient(135deg, var(--accent-2), var(--accent)); }
+    :root[data-theme="dark"] .btn.primary{ 
+      background: linear-gradient(135deg, var(--accent-2), var(--accent));
+      color: #fff !important;             /* Asegurar alto contraste */
+      text-shadow: 0 1px 2px rgba(0,0,0,.65), 0 0 8px rgba(0,0,0,.35); /* Contorno suave para el ícono */
+      font-size: 18px;                    /* Un poco más grande solo en oscuro */
+  -webkit-text-stroke: 0.4px rgba(0,0,0,.55);
+    }
     :root[data-theme="dark"] .bubble{ background:#0b1324; color:var(--ink); border-color:var(--ring); }
     :root[data-theme="dark"] .you .bubble{
       background: linear-gradient(135deg, rgba(30,58,138,.35), rgba(2,132,199,.18));
@@ -532,6 +544,46 @@
     .daySep{display:flex; align-items:center; gap:12px; margin:10px 0; opacity:.7}
     .daySep hr{flex:1; border:none; height:1px; background:var(--ring)}
     .daySep span{font-size:12px; color:var(--muted)}
+
+    /* MODO LIGERO: elimina efectos visuales pesados cuando data-lite=1 */
+  :root[data-lite="1"] *{ animation:none !important; transition:none !important; }
+  /* Mantener typing animado en modo ligero */
+  :root[data-lite="1"] .typing .dotDot{ animation:blink 1.4s infinite !important; }
+    :root[data-lite="1"] body::before,
+    :root[data-lite="1"] body::after,
+    :root[data-lite="1"] .shell::before{ display:none !important; content:none !important; }
+    :root[data-lite="1"] .header,
+    :root[data-lite="1"] .bar,
+    :root[data-lite="1"] .btn,
+    :root[data-lite="1"] .chip,
+    :root[data-lite="1"] .bubble{ backdrop-filter:none !important; box-shadow:none !important; }
+    :root[data-lite="1"] .btn.primary{ animation:none !important; }
+  :root[data-lite="1"] .bubble:hover,
+  :root[data-lite="1"] .chip:hover{ transform:none !important; }
+  /* Quitar highlight de burbuja en hover */
+  :root[data-lite="1"] .bubble::before,
+  :root[data-lite="1"] .bubble:hover::before{ display:none !important; content:none !important; opacity:0 !important; }
+  /* Quitar el efecto radial/gradiente y cambios visuales en chips al hover */
+  :root[data-lite="1"] .chip::before,
+  :root[data-lite="1"] .chip:hover::before{ display:none !important; content:none !important; width:0 !important; height:0 !important; }
+  :root[data-lite="1"] .chip:hover{ background: inherit !important; border-color: inherit !important; color: inherit !important; box-shadow:none !important; }
+  /* Botones sin hover animado */
+  :root[data-lite="1"] .btn:hover{ transform:none !important; box-shadow:none !important; }
+    :root[data-lite="1"] #bgParticles{ display:none !important; }
+  /* Fondos planos en modo ligero (sin gradientes) */
+  :root[data-lite="1"] .header{ background: var(--bg2) !important; }
+  :root[data-lite="1"] .chat{ background: var(--bg1) !important; }
+  :root[data-lite="1"] .chipsBar{ background: var(--bg2) !important; }
+  :root[data-lite="1"] .shell{ background: var(--bg2) !important; box-shadow:none !important; }
+  :root[data-lite="1"] .btn.primary{ background: var(--accent) !important; }
+  :root[data-theme="dark"][data-lite="1"] .header{ background:#0f172a !important; }
+  :root[data-theme="dark"][data-lite="1"] .chat{ background:#0b1222 !important; }
+  :root[data-theme="dark"][data-lite="1"] .chipsBar{ background:#0b1324 !important; border-top-color: var(--ring) !important; }
+  :root[data-theme="dark"][data-lite="1"] .shell{ background:#0b1324 !important; }
+  :root[data-theme="dark"][data-lite="1"] .btn.primary{ background: var(--accent-2) !important; }
+  /* Quitar sombras en algunos elementos */
+  :root[data-lite="1"] .toast{ box-shadow:none !important; }
+  :root[data-lite="1"] #scrollDown{ box-shadow:none !important; }
   </style>
 </head>
 <body>
@@ -548,9 +600,12 @@
     <header class="header">
       <div class="container">
         <!-- IZQUIERDA: botón modo oscuro (NUEVO) -->
-        <div class="hdr-left">
+        <div class="hdr-left" style="display:flex; gap:8px; align-items:center;">
           <button id="themeToggle" class="themeBtn" aria-label="Cambiar tema">
             <span class="themeBtn__icon" aria-hidden="true">☾</span>
+          </button>
+          <button id="liteToggle" class="themeBtn" aria-label="Modo ligero" title="Modo ligero">
+            <span class="themeBtn__icon" aria-hidden="true">⚡</span>
           </button>
         </div>
 
@@ -631,6 +686,29 @@
 
     document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
 
+    // ===== Modo ligero: toggle/persistencia =====
+    function setLite(v){
+      const val = v === '1' ? '1' : '0';
+      document.documentElement.setAttribute('data-lite', val);
+      localStorage.setItem('psicoia-lite', val);
+      const icon = document.querySelector('#liteToggle .themeBtn__icon');
+      if(icon) icon.textContent = val==='1' ? '⚡' : '⛶';
+    }
+    function toggleLite(){ setLite((document.documentElement.getAttribute('data-lite')||'0')==='1' ? '0' : '1'); }
+    // Restaurar preferencia si existe (por defecto no cambia nada)
+    (function(){
+      const savedLite = localStorage.getItem('psicoia-lite');
+      if(savedLite!=null){
+        setLite(savedLite);
+      }else{
+        // Predeterminado: modo completo (no ligero)
+        document.documentElement.setAttribute('data-lite','0');
+        const icon = document.querySelector('#liteToggle .themeBtn__icon');
+        if(icon) icon.textContent = '⛶';
+      }
+      document.getElementById('liteToggle')?.addEventListener('click', toggleLite);
+    })();
+
     // === Tu lógica original ===
     const logEl=document.getElementById('log');
     const msgEl=document.getElementById('msg');
@@ -697,7 +775,8 @@
       lastRole=role; 
       lastTime=Date.now(); 
       
-      logEl.scrollTo({ top: logEl.scrollHeight, behavior: 'smooth' });
+  const smooth = (document.documentElement.getAttribute('data-lite')!=='1');
+  logEl.scrollTo({ top: logEl.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
     }
 
     function setStatus(kind,text){
@@ -726,7 +805,8 @@
       const ts=document.createElement('div'); ts.className='ts'; ts.textContent='…';
       typingRow.appendChild(ts);
       logEl.appendChild(typingRow);
-      logEl.scrollTo({ top: logEl.scrollHeight, behavior: 'smooth' });
+  const smooth2 = (document.documentElement.getAttribute('data-lite')!=='1');
+  logEl.scrollTo({ top: logEl.scrollHeight, behavior: smooth2 ? 'smooth' : 'auto' });
     }
     function hideTyping(){
       if(typingRow && typingRow.parentNode){
@@ -759,7 +839,9 @@
       if(!v) return;
       
       // animación al enviar
-      sendBtn.style.transform='scale(0.95)'; setTimeout(()=>sendBtn.style.transform='',150);
+      if(document.documentElement.getAttribute('data-lite')!=='1'){
+        sendBtn.style.transform='scale(0.95)'; setTimeout(()=>sendBtn.style.transform='',150);
+      }
       ws.send(v); 
       appendMessage('you', v); 
       msgEl.value='';
@@ -780,8 +862,10 @@
       appendMessage('bot', 'Chat limpiado. ¿En qué puedo ayudarte?');
     };
     reconnectBtn.onclick=()=>{ 
-      reconnectBtn.style.transform='rotate(360deg)';
-      setTimeout(()=>{reconnectBtn.style.transform=''},500);
+      if(document.documentElement.getAttribute('data-lite')!=='1'){
+        reconnectBtn.style.transform='rotate(360deg)';
+        setTimeout(()=>{reconnectBtn.style.transform=''},500);
+      }
       connect();
     };
     
@@ -798,6 +882,7 @@
     ];
     let placeholderIndex = 0;
     setInterval(() => {
+      if(document.documentElement.getAttribute('data-lite')==='1') return;
       placeholderIndex = (placeholderIndex + 1) % placeholders.length;
       msgEl.placeholder = placeholders[placeholderIndex];
     }, 4000);
@@ -823,7 +908,8 @@
     }
     logEl.addEventListener('scroll', updateScrollBtn);
     scrollDownBtn.addEventListener('click', ()=>{
-      logEl.scrollTo({top:logEl.scrollHeight, behavior:'smooth'});
+      const smooth = (document.documentElement.getAttribute('data-lite')!=='1');
+      logEl.scrollTo({top:logEl.scrollHeight, behavior: smooth ? 'smooth' : 'auto'});
     });
 
     // === CHICHE: atajo para enfocar ===
