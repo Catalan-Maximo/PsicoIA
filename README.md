@@ -38,19 +38,7 @@ MODEL_NAME=meta-llama/llama-3.1-8b-instant
 # (Opcional) LLM_URL=https://mi-endpoint/openai/v1/chat/completions
 ```
 
-2. En `app/prompts/promptgeneral.py` debe definir la constante `SYSTEM_PROMPT` con el prompt del sistema.
-
-## Estructura del repositorio (resumen)
-
-- `app/` — servidor TCP y lógica principal
-  - `server.py` — arranque del servidor TCP
-  - `client_handler.py` — manejo por conexión (una coroutine por cliente)
-  - `services/llm_client.py` — cliente async para LLM
-  - `prompts/promptgeneral.py` — `SYSTEM_PROMPT`
-  - `utils/` — logger, rate limiter, helpers
-- `gateway/` — puente WebSocket ↔ TCP (`ws_gateway.py`)
-- `web/` — cliente web simple (`client_web.html`)
-- `Dockerfile`, `docker-compose.yml`, `requirements.txt`
+---
 
 ## Ejecutar:
 ### Opción A: Docker (recomendada)
@@ -106,46 +94,100 @@ Para detener:
 
 ## Probar la aplicación
 
-Opción A — Cliente web (recomendado)
+### **Opción 1: Cliente web HTML (interfaz gráfica - RECOMENDADO)**
 
-1. Asegúrate de que `app` y `gateway` estén levantados.
-2. Abre `web/client_web.html` en tu navegador.
-3. Envía mensajes; cada pestaña equivale a un usuario aislado.
+1. Asegúrate de que `app` y `gateway` estén levantados (con Docker o localmente).
+2. Abre el archivo `web/client_web.html` directamente en tu navegador (no requiere servidor web).
+3. El cliente se conectará automáticamente a `ws://localhost:8765`.
+4. Escribe mensajes en el chat y recibe respuestas del chatbot.
+5. **Cada pestaña del navegador = usuario independiente** con su propia sesión.
 
-Opción B — TCP directo (console)
+---
 
-```powershell
-nc localhost 5001
-# o
-telnet localhost 5001
+### **Opción 2: Consola TCP directa (línea de comandos)**
+
+Conecta directamente al servidor TCP sin pasar por el gateway WebSocket.
+
+#### **Windows (PowerShell)**
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 🔄 Flujo de datos y arquitectura
+
+### **Arquitectura general**
 ```
-En algunos casos, "nc" y "telnet" no están habilitados, entonces se puede usar wsl (solo con "nc"):
-
-```powershell
-wsl nc localhost 5001
+┌─────────────┐     WebSocket      ┌──────────┐      TCP       ┌─────────┐      HTTP       ┌─────────┐
+│  Navegador  │ ◄─────────────────► │ Gateway  │ ◄────────────► │   App   │ ◄──────────────► │   LLM   │
+│ (HTML+JS)   │   ws://localhost:   │  (WS↔TCP)│   localhost:   │ (Server)│   API (Groq/   │ (Groq/  │
+│             │        8765         │          │      5001      │         │    OpenAI)     │ OpenAI) │
+└─────────────┘                     └──────────┘                └─────────┘                └─────────┘
+     │                                   │                            │
+     │                                   │                            │
+     └───────────────────────────────────┴────────────────────────────┘
+              Cada usuario tiene sesión aislada (1:1:1)
 ```
-Aclaración: El puerto debe ser el mismo que está en `docker-compose.yml`, del lado izquierdo. Ej: `5002:5001`, `5002` en este caso.
 
-Escribe mensajes y observa las respuestas.
+### **Flujo de un mensaje (paso a paso)**
 
-## Qué observar (demo)
+1. **Usuario envía mensaje**:
+   - Desde navegador (WebSocket) o consola TCP directa.
 
-- Logs de conexiones: `Usuario-1`, `Usuario-2`, …
-- Llamadas al LLM con `trace_id` y latencia registrados
-- Comportamiento de rate-limit si se envían demasiados mensajes seguidos
+2. **Gateway WebSocket** (si se usa):
+   - Recibe mensaje del navegador vía WebSocket.
+   - Lo reenvía a través de su conexión TCP dedicada al servidor `app`.
 
-## Solución de problemas rápida
+3. **Servidor TCP (`app/server.py`)**:
+   - Acepta la conexión y crea una coroutine `handle_client()`.
 
-- El navegador no conecta: verifica que `gateway` publique `:8765` (usar `docker compose ps`).
-- No hay respuesta del LLM: revisa `GROQ_API_KEY` y `MODEL_NAME` en `.env`.
-- Puertos ocupados: cambia el mapeo en `docker-compose.yml` (ej. `5002:5001`) y reconstruye.
-- Firewall: permite conexiones locales cuando Docker expone puertos.
+4. **Client Handler (`app/client_handler.py`)**:
+   - Asigna ID de usuario (`Usuario-N`).
+   - Valida rate limit (ventana deslizante).
+   - Genera `trace_id` para trazabilidad.
+   - Espera en el semáforo global (`MAX_IN_FLIGHT`).
 
-## Notas técnicas (resumen)
+5. **LLM Client (`app/services/llm_client.py`)**:
+   - Recupera historial de conversación del usuario desde RAM.
+   - Construye array de `messages` con ventana de tokens.
+   - Envía POST HTTP asíncrono al LLM (Groq/OpenAI).
+   - Aplica reintentos con backoff si hay errores 429/5xx.
+   - Guarda respuesta en historial.
 
-- Concurrencia: `asyncio.start_server()` crea una coroutine por cliente; I/O no bloqueante.
-- Aislamiento: cada WebSocket abre una conexión TCP 1:1 con `app`.
-- LLM: `httpx.AsyncClient` para llamadas async al modelo compatible OpenAI/Groq.
-- Seguridad/operaciones: añade control de errores, límites y trazabilidad via `trace_id`.
+6. **Respuesta al usuario**:
+   - `llm_client.py` devuelve texto al `client_handler.py`.
+   - `client_handler.py` envía respuesta por TCP.
+   - `gateway` (si se usa) reenvía por WebSocket al navegador.
+   - El navegador o terminal muestra la respuesta.
+
+### **Modelo de concurrencia**
+
+- **asyncio**: Un solo proceso, un solo hilo, event loop no bloqueante.
+- **Coroutines**: Cada conexión TCP obtiene su propia coroutine `handle_client()`.
+- **I/O asíncrono**:
+  - `await reader.readline()`: Lee sin bloquear otras conexiones.
+  - `await httpx.post()`: Llama al LLM sin bloquear el servidor.
+  - `await writer.drain()`: Escribe sin bloquear.
+- **Protección**:
+  - **Semáforo global**: Limita requests simultáneos al LLM.
+  - **Rate limiter por usuario**: Previene flooding individual.
+
+### **Gestión de estado**
+
+- **Historial de conversación**: Almacenado en RAM en diccionario `_histories` (clave: `conversation_id`).
+- **Locks por conversación**: `asyncio.Lock` evita race conditions al modificar historiales.
+- **Ventana de tokens**: Solo se envían los mensajes más recientes que caben en `LLM_INPUT_TOKEN_BUDGET`.
+- **Persistencia**: No hay; si reinicias el servidor, se pierden los historiales (puedes implementar DB).
 
 ---
