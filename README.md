@@ -108,21 +108,34 @@ Para detener:
 
 Conecta directamente al servidor TCP sin pasar por el gateway WebSocket.
 
-#### **Windows (PowerShell)**
+1. Primero asegúrate de que `app` y `gateway` estén levantados (con Docker o localmente).
 
+#### **Terminal: Windows o Linux**
 
+2. Conectate desde la terminal desde el S.O. que uses
 
+```powershell
+# En caso de Linux/Mac
+nc localhost 5001
+# En caso de Windows
+telnet localhost 5001
+```
+En la mayoría de los casos, para Windows, "telnet" no está habilitado, pero se puede activar de la siguiente manera:
+Inicio → Busca "Activar o desactivar las características de Windows" → Marca "Cliente Telnet" → Click en aceptar
 
+Si no se quiere activar la característica anterior, se puede usar WSL(1 o 2) junto con el comando "nc":
 
+```powershell
+wsl nc localhost 5001
+```
+Si no se tiene instalado WSL, aquí hay una guía para activarlo: https://learn.microsoft.com/es-es/windows/wsl/install
 
+Aclaraciones: 
+- El puerto debe ser el mismo que está en `docker-compose.yml`, del lado izquierdo. Ej: `5002:5001`, `5002` en este caso.
+- **Cada nueva consola = usuario independiente** con su propia sesión.
+- Este metodo no sirve para conectarse directo al WebSocket. Para hacerlo, es necesario Node.js y su paquete "wscat".
 
-
-
-
-
-
-
-
+3. Escribe mensajes en la terminal y observa las respuestas.
 
 
 ## 🔄 Flujo de datos y arquitectura
